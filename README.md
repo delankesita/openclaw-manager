@@ -30,9 +30,17 @@ OpenClaw Manager brings the power of ClawdHome to your IDE. Run multiple OpenCla
 
 ## Screenshots
 
+### Dashboard & Tree View
+
 | Dashboard | Tree View |
 |-----------|-----------|
-| ![Dashboard](docs/assets/dashboard.png) | ![Tree View](docs/assets/treeview.png) |
+| ![Dashboard](docs/assets/dashboard.svg) | ![Tree View](docs/assets/treeview.svg) |
+
+### Channel Configuration & Model Selector
+
+| Channel Configuration | Model Selector |
+|----------------------|----------------|
+| ![Channels](docs/assets/channels.svg) | ![Models](docs/assets/models.svg) |
 
 ## Installation
 

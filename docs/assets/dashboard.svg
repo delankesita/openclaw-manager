@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF6B6B"/>
+      <stop offset="100%" style="stop-color:#FF8E53"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#1e1e1e"/>
+  
+  <!-- Header -->
+  <rect width="800" height="50" fill="#252526"/>
+  <text x="20" y="32" fill="#ffffff" font-family="Arial" font-size="18" font-weight="bold">🦐 OpenClaw Manager</text>
+  <rect x="620" y="12" width="80" height="26" rx="4" fill="#0e639c"/>
+  <text x="635" y="30" fill="#ffffff" font-family="Arial" font-size="12">+ New</text>
+  <rect x="710" y="12" width="70" height="26" rx="4" fill="#3c3c3c"/>
+  <text x="722" y="30" fill="#ffffff" font-family="Arial" font-size="12">↻ Refresh</text>
+  
+  <!-- Stats Bar -->
+  <rect x="15" y="60" width="770" height="40" rx="4" fill="#2d2d2d"/>
+  <text x="30" y="85" fill="#ffffff" font-family="Arial" font-size="14">Total: </text>
+  <text x="70" y="85" fill="#ffffff" font-family="Arial" font-size="16" font-weight="bold">3</text>
+  <text x="120" y="85" fill="#ffffff" font-family="Arial" font-size="14">Running: </text>
+  <text x="185" y="85" fill="#4ec9b0" font-family="Arial" font-size="16" font-weight="bold">2</text>
+  <text x="240" y="85" fill="#ffffff" font-family="Arial" font-size="14">Stopped: </text>
+  <text x="305" y="85" fill="#ffffff" font-family="Arial" font-size="16" font-weight="bold">1</text>
+  
+  <!-- Instance Cards -->
+  <!-- Card 1: Running -->
+  <rect x="15" y="115" width="245" height="160" rx="8" fill="#2d2d2d" stroke="#3c3c3c"/>
+  <rect x="15" y="115" width="245" height="35" rx="8" fill="#3c3c3c"/>
+  <rect x="15" y="142" width="245" height="8" fill="#2d2d2d"/>
+  <text x="30" y="140" fill="#ffffff" font-family="Arial" font-size="14" font-weight="bold">my-shrimp</text>
+  <rect x="190" y="125" width="60" height="18" rx="9" fill="#28a74520"/>
+  <text x="198" y="138" fill="#28a745" font-family="Arial" font-size="10">running</text>
+  
+  <text x="30" y="175" fill="#808080" font-family="Arial" font-size="11">Port:</text>
+  <text x="60" y="175" fill="#ffffff" font-family="Arial" font-size="11">5000</text>
+  <text x="130" y="175" fill="#808080" font-family="Arial" font-size="11">Model:</text>
+  <text x="165" y="175" fill="#ffffff" font-family="Arial" font-size="11">fast</text>
+  
+  <circle cx="35" y="205" r="4" fill="#28a745"/>
+  <text x="45" y="208" fill="#808080" font-family="Arial" font-size="10">Health: ok</text>
+  <text x="120" y="208" fill="#808080" font-family="Arial" font-size="10">CPU: 2.3%</text>
+  <text x="180" y="208" fill="#808080" font-family="Arial" font-size="10">MEM: 120MB</text>
+  
+  <rect x="25" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="31" y="240" fill="#ffffff" font-family="Arial" font-size="9">■ Stop</text>
+  <rect x="75" y="225" width="55" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="80" y="240" fill="#ffffff" font-family="Arial" font-size="9">↻ Restart</text>
+  <rect x="135" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="141" y="240" fill="#ffffff" font-family="Arial" font-size="9">⚙ Config</text>
+  <rect x="185" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="191" y="240" fill="#ffffff" font-family="Arial" font-size="9">📋 Logs</text>
+  <rect x="235" y="225" width="20" height="22" rx="3" fill="#dc354520"/>
+  <text x="241" y="240" fill="#dc3545" font-family="Arial" font-size="9">✕</text>
+  
+  <!-- Card 2: Running -->
+  <rect x="275" y="115" width="245" height="160" rx="8" fill="#2d2d2d" stroke="#3c3c3c"/>
+  <rect x="275" y="115" width="245" height="35" rx="8" fill="#3c3c3c"/>
+  <rect x="275" y="142" width="245" height="8" fill="#2d2d2d"/>
+  <text x="290" y="140" fill="#ffffff" font-family="Arial" font-size="14" font-weight="bold">dev-shrimp</text>
+  <rect x="450" y="125" width="60" height="18" rx="9" fill="#28a74520"/>
+  <text x="458" y="138" fill="#28a745" font-family="Arial" font-size="10">running</text>
+  
+  <text x="290" y="175" fill="#808080" font-family="Arial" font-size="11">Port:</text>
+  <text x="320" y="175" fill="#ffffff" font-family="Arial" font-size="11">5001</text>
+  <text x="390" y="175" fill="#808080" font-family="Arial" font-size="11">Model:</text>
+  <text x="425" y="175" fill="#ffffff" font-family="Arial" font-size="11">qwen</text>
+  
+  <circle cx="295" y="205" r="4" fill="#28a745"/>
+  <text x="305" y="208" fill="#808080" font-family="Arial" font-size="10">Health: ok</text>
+  <text x="380" y="208" fill="#808080" font-family="Arial" font-size="10">CPU: 1.8%</text>
+  <text x="440" y="208" fill="#808080" font-family="Arial" font-size="10">MEM: 98MB</text>
+  
+  <rect x="285" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="291" y="240" fill="#ffffff" font-family="Arial" font-size="9">■ Stop</text>
+  <rect x="335" y="225" width="55" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="340" y="240" fill="#ffffff" font-family="Arial" font-size="9">↻ Restart</text>
+  <rect x="395" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="401" y="240" fill="#ffffff" font-family="Arial" font-size="9">⚙ Config</text>
+  <rect x="445" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="451" y="240" fill="#ffffff" font-family="Arial" font-size="9">📋 Logs</text>
+  <rect x="495" y="225" width="20" height="22" rx="3" fill="#dc354520"/>
+  <text x="501" y="240" fill="#dc3545" font-family="Arial" font-size="9">✕</text>
+  
+  <!-- Card 3: Stopped -->
+  <rect x="535" y="115" width="245" height="160" rx="8" fill="#2d2d2d" stroke="#3c3c3c"/>
+  <rect x="535" y="115" width="245" height="35" rx="8" fill="#3c3c3c"/>
+  <rect x="535" y="142" width="245" height="8" fill="#2d2d2d"/>
+  <text x="550" y="140" fill="#ffffff" font-family="Arial" font-size="14" font-weight="bold">test-shrimp</text>
+  <rect x="710" y="125" width="60" height="18" rx="9" fill="#dc354520"/>
+  <text x="718" y="138" fill="#dc3545" font-family="Arial" font-size="10">stopped</text>
+  
+  <text x="550" y="175" fill="#808080" font-family="Arial" font-size="11">Port:</text>
+  <text x="580" y="175" fill="#ffffff" font-family="Arial" font-size="11">5002</text>
+  <text x="650" y="175" fill="#808080" font-family="Arial" font-size="11">Model:</text>
+  <text x="685" y="175" fill="#ffffff" font-family="Arial" font-size="11">default</text>
+  
+  <circle cx="555" y="205" r="4" fill="#dc3545"/>
+  <text x="565" y="208" fill="#808080" font-family="Arial" font-size="10">Health: error</text>
+  
+  <rect x="545" y="225" width="45" height="22" rx="3" fill="#0e639c"/>
+  <text x="551" y="240" fill="#ffffff" font-family="Arial" font-size="9">▶ Start</text>
+  <rect x="595" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="601" y="240" fill="#ffffff" font-family="Arial" font-size="9">⚙ Config</text>
+  <rect x="645" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="651" y="240" fill="#ffffff" font-family="Arial" font-size="9">📋 Logs</text>
+  <rect x="695" y="225" width="45" height="22" rx="3" fill="#3c3c3c"/>
+  <text x="701" y="240" fill="#ffffff" font-family="Arial" font-size="9">💾 Backup</text>
+  <rect x="745" y="225" width="30" height="22" rx="3" fill="#dc354520"/>
+  <text x="751" y="240" fill="#dc3545" font-family="Arial" font-size="9">✕</text>
+  
+  <!-- Status Bar -->
+  <rect x="0" y="480" width="800" height="20" fill="#007acc"/>
+  <text x="10" y="493" fill="#ffffff" font-family="Arial" font-size="11">$(server) OpenClaw: 2/3</text>
+</svg>

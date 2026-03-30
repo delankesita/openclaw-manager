@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450">
+  <!-- Background -->
+  <rect width="300" height="450" fill="#252526"/>
+  
+  <!-- Header -->
+  <rect width="300" height="35" fill="#3c3c3c"/>
+  <text x="15" y="23" fill="#ffffff" font-family="Arial" font-size="13" font-weight="bold">INSTANCES</text>
+  <rect x="250" y="8" width="18" height="18" rx="2" fill="#3c3c3c"/>
+  <text x="255" y="21" fill="#ffffff" font-family="Arial" font-size="12">+</text>
+  <rect x="272" y="8" width="18" height="18" rx="2" fill="#3c3c3c"/>
+  <text x="277" y="21" fill="#ffffff" font-family="Arial" font-size="10">⋮</text>
+  
+  <!-- Separator -->
+  <rect x="0" y="35" width="300" height="1" fill="#3c3c3c"/>
+  
+  <!-- Instance Items -->
+  <!-- Item 1: Running -->
+  <rect x="0" y="36" width="300" height="28" fill="#252526"/>
+  <circle cx="18" cy="50" r="6" fill="#28a745"/>
+  <text x="30" y="54" fill="#ffffff" font-family="Arial" font-size="12">my-shrimp</text>
+  <text x="200" y="54" fill="#808080" font-family="Arial" font-size="10">Port 5000</text>
+  
+  <rect x="0" y="64" width="300" height="1" fill="#3c3c3c"/>
+  
+  <!-- Item 2: Running -->
+  <rect x="0" y="65" width="300" height="28" fill="#252526"/>
+  <circle cx="18" cy="79" r="6" fill="#28a745"/>
+  <text x="30" y="83" fill="#ffffff" font-family="Arial" font-size="12">dev-shrimp</text>
+  <text x="200" y="83" fill="#808080" font-family="Arial" font-size="10">Port 5001</text>
+  
+  <rect x="0" y="93" width="300" height="1" fill="#3c3c3c"/>
+  
+  <!-- Item 3: Stopped -->
+  <rect x="0" y="94" width="300" height="28" fill="#252526"/>
+  <circle cx="18" cy="108" r="6" fill="#dc3545"/>
+  <text x="30" y="112" fill="#ffffff" font-family="Arial" font-size="12">test-shrimp</text>
+  <text x="200" y="112" fill="#808080" font-family="Arial" font-size="10">Port 5002</text>
+  
+  <rect x="0" y="122" width="300" height="1" fill="#3c3c3c"/>
+  
+  <!-- Item 4: Starting -->
+  <rect x="0" y="123" width="300" height="28" fill="#252526"/>
+  <circle cx="18" cy="137" r="6" fill="#ffc107"/>
+  <text x="30" y="141" fill="#ffffff" font-family="Arial" font-size="12">prod-shrimp</text>
+  <text x="200" y="141" fill="#808080" font-family="Arial" font-size="10">Port 5003</text>
+  
+  <rect x="0" y="151" width="300" height="1" fill="#3c3c3c"/>
+  
+  <!-- Context Menu -->
+  <rect x="20" y="170" width="200" height="180" rx="4" fill="#252526" stroke="#454545"/>
+  <rect x="20" y="170" width="200" height="28" fill="#252526"/>
+  <text x="35" y="188" fill="#ffffff" font-family="Arial" font-size="11">▶ Start</text>
+  <rect x="20" y="198" width="200" height="1" fill="#454545"/>
+  <rect x="20" y="199" width="200" height="28" fill="#252526"/>
+  <text x="35" y="217" fill="#ffffff" font-family="Arial" font-size="11">■ Stop</text>
+  <rect x="20" y="227" width="200" height="1" fill="#454545"/>
+  <rect x="20" y="228" width="200" height="28" fill="#252526"/>
+  <text x="35" y="246" fill="#ffffff" font-family="Arial" font-size="11">↻ Restart</text>
+  <rect x="20" y="256" width="200" height="1" fill="#454545"/>
+  <rect x="20" y="257" width="200" height="28" fill="#252526"/>
+  <text x="35" y="275" fill="#ffffff" font-family="Arial" font-size="11">⧉ Clone</text>
+  <rect x="20" y="285" width="200" height="1" fill="#454545"/>
+  <rect x="20" y="286" width="200" height="28" fill="#252526"/>
+  <text x="35" y="304" fill="#ffffff" font-family="Arial" font-size="11">⚙ Open Config</text>
+  <rect x="20" y="314" width="200" height="1" fill="#454545"/>
+  <rect x="20" y="315" width="200" height="28" fill="#252526"/>
+  <text x="35" y="333" fill="#ffffff" font-family="Arial" font-size="11">📋 View Logs</text>
+  <rect x="20" y="343" width="200" height="1" fill="#454545"/>
+  <rect x="20" y="344" width="200" height="28" fill="#252526"/>
+  <text x="35" y="362" fill="#dc3545" font-family="Arial" font-size="11">✕ Delete</text>
+  
+  <!-- Status indicator -->
+  <rect x="0" y="430" width="300" height="20" fill="#3c3c3c"/>
+  <circle cx="12" cy="440" r="4" fill="#28a745"/>
+  <text x="22" y="444" fill="#808080" font-family="Arial" font-size="10">2 running, 1 stopped</text>
+</svg>
