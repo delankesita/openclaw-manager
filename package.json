@@ -1,0 +1,179 @@
+{
+  "name": "openclaw-manager",
+  "displayName": "OpenClaw Manager",
+  "description": "Manage multiple OpenClaw gateway instances with isolation, monitoring, and file management",
+  "version": "0.1.0",
+  "publisher": "openclaw",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "openclaw",
+    "ai",
+    "agent",
+    "gateway",
+    "management"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "icon": "resources/icon.png",
+  "contributes": {
+    "commands": [
+      {
+        "command": "openclawManager.openDashboard",
+        "title": "OpenClaw: Open Dashboard"
+      },
+      {
+        "command": "openclawManager.createInstance",
+        "title": "OpenClaw: Create New Instance"
+      },
+      {
+        "command": "openclawManager.deleteInstance",
+        "title": "OpenClaw: Delete Instance"
+      },
+      {
+        "command": "openclawManager.startInstance",
+        "title": "OpenClaw: Start Instance"
+      },
+      {
+        "command": "openclawManager.stopInstance",
+        "title": "OpenClaw: Stop Instance"
+      },
+      {
+        "command": "openclawManager.restartInstance",
+        "title": "OpenClaw: Restart Instance"
+      },
+      {
+        "command": "openclawManager.cloneInstance",
+        "title": "OpenClaw: Clone Instance"
+      },
+      {
+        "command": "openclawManager.openConfig",
+        "title": "OpenClaw: Open Config File"
+      },
+      {
+        "command": "openclawManager.viewLogs",
+        "title": "OpenClaw: View Logs"
+      },
+      {
+        "command": "openclawManager.healthCheck",
+        "title": "OpenClaw: Health Check"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "openclaw-manager",
+          "title": "OpenClaw Manager",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "openclaw-manager": [
+        {
+          "id": "openclawInstances",
+          "name": "Instances"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "openclawManager.createInstance",
+          "when": "view == openclawInstances",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "openclawManager.startInstance",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "instance@1"
+        },
+        {
+          "command": "openclawManager.stopInstance",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "instance@2"
+        },
+        {
+          "command": "openclawManager.restartInstance",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "instance@3"
+        },
+        {
+          "command": "openclawManager.cloneInstance",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "instance@4"
+        },
+        {
+          "command": "openclawManager.deleteInstance",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "instance@5"
+        },
+        {
+          "command": "openclawManager.openConfig",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "files@1"
+        },
+        {
+          "command": "openclawManager.viewLogs",
+          "when": "view == openclawInstances && viewItem == instance",
+          "group": "files@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OpenClaw Manager",
+      "properties": {
+        "openclawManager.instancesDir": {
+          "type": "string",
+          "default": "~/.openclaw-instances",
+          "description": "Directory to store OpenClaw instance configurations"
+        },
+        "openclawManager.defaultPort": {
+          "type": "number",
+          "default": 5000,
+          "description": "Default port for new instances"
+        },
+        "openclawManager.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-start instances when VS Code opens"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw/openclaw-manager"
+  },
+  "license": "MIT"
+}
