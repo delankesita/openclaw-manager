@@ -2,7 +2,7 @@
   "name": "openclaw-manager",
   "displayName": "OpenClaw Manager",
   "description": "Manage multiple OpenClaw gateway instances with isolation, monitoring, and file management",
-  "version": "0.4.0",
+  "version": "0.1.1",
   "publisher": "openclaw",
   "engines": {
     "vscode": "^1.85.0"
@@ -21,6 +21,7 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "icon": "resources/icon.png",
   "contributes": {
     "commands": [
       {
@@ -30,10 +31,6 @@
       {
         "command": "openclawManager.createInstance",
         "title": "OpenClaw: Create New Instance"
-      },
-      {
-        "command": "openclawManager.createInstanceFromTemplate",
-        "title": "OpenClaw: Quick Setup from Template"
       },
       {
         "command": "openclawManager.deleteInstance",
@@ -66,54 +63,6 @@
       {
         "command": "openclawManager.healthCheck",
         "title": "OpenClaw: Health Check"
-      },
-      {
-        "command": "openclawManager.backupInstance",
-        "title": "OpenClaw: Backup Instance"
-      },
-      {
-        "command": "openclawManager.restoreInstance",
-        "title": "OpenClaw: Restore Instance"
-      },
-      {
-        "command": "openclawManager.startAllInstances",
-        "title": "OpenClaw: Start All Instances"
-      },
-      {
-        "command": "openclawManager.stopAllInstances",
-        "title": "OpenClaw: Stop All Instances"
-      },
-      {
-        "command": "openclawManager.exportAllInstances",
-        "title": "OpenClaw: Export All Instances"
-      },
-      {
-        "command": "openclawManager.importInstances",
-        "title": "OpenClaw: Import Instances"
-      },
-      {
-        "command": "openclawManager.configureChannels",
-        "title": "OpenClaw: Configure Channels"
-      },
-      {
-        "command": "openclawManager.addChannel",
-        "title": "OpenClaw: Add Channel"
-      },
-      {
-        "command": "openclawManager.selectModel",
-        "title": "OpenClaw: Select Model"
-      },
-      {
-        "command": "openclawManager.showModelConfig",
-        "title": "OpenClaw: Model Configuration"
-      },
-      {
-        "command": "openclawManager.checkForUpdates",
-        "title": "OpenClaw: Check for Updates"
-      },
-      {
-        "command": "openclawManager.installUpdate",
-        "title": "OpenClaw: Install Update"
       }
     ],
     "viewsContainers": {
@@ -121,7 +70,7 @@
         {
           "id": "openclaw-manager",
           "title": "OpenClaw Manager",
-          "icon": "resources/icon.svg"
+          "icon": "resources/icon.png"
         }
       ]
     },
@@ -197,30 +146,10 @@
           "default": false,
           "description": "Auto-start instances when VS Code opens"
         },
-        "openclawManager.backupDir": {
-          "type": "string",
-          "default": "~/.openclaw-manager/backups",
-          "description": "Directory for instance backups"
-        },
-        "openclawManager.maxBackups": {
-          "type": "number",
-          "default": 10,
-          "description": "Maximum number of backups to keep per instance"
-        },
         "openclawManager.healthCheckInterval": {
           "type": "number",
           "default": 30000,
-          "description": "Health check interval in milliseconds"
-        },
-        "openclawManager.autoUpdateCheck": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically check for extension updates"
-        },
-        "openclawManager.updateCheckInterval": {
-          "type": "number",
-          "default": 86400000,
-          "description": "Update check interval in milliseconds (default: 24 hours)"
+          "description": "Interval in milliseconds between health checks"
         }
       }
     }
@@ -237,7 +166,6 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "@types/archiver": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "eslint": "^8.54.0",
@@ -246,9 +174,7 @@
     "@vscode/vsce": "^2.22.0"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "archiver": "^6.0.0",
-    "extract-zip": "^2.0.1"
+    "axios": "^1.6.0"
   },
   "repository": {
     "type": "git",

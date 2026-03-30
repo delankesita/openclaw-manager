@@ -39,7 +39,7 @@ export class DashboardPanel {
         this._extensionUri = extensionUri;
         this._manager = manager;
 
-        this._update();
+        this.update();
 
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -48,27 +48,21 @@ export class DashboardPanel {
                 switch (message.command) {
                     case 'createInstance':
                         await this._manager.createInstance();
-                        this._update();
                         break;
                     case 'startInstance':
                         await this._manager.startInstance(message.id);
-                        this._update();
                         break;
                     case 'stopInstance':
                         await this._manager.stopInstance(message.id);
-                        this._update();
                         break;
                     case 'restartInstance':
                         await this._manager.restartInstance(message.id);
-                        this._update();
                         break;
                     case 'deleteInstance':
                         await this._manager.deleteInstance(message.id);
-                        this._update();
                         break;
                     case 'cloneInstance':
                         await this._manager.cloneInstance(message.id);
-                        this._update();
                         break;
                     case 'openConfig':
                         this._manager.openConfig(message.id);
@@ -91,34 +85,31 @@ export class DashboardPanel {
         );
     }
 
-    private _update(): void {
+    public update(): void {
         const instances = this._manager.getInstances();
         this._panel.webview.html = this._getHtmlForWebview(instances);
     }
 
     private _getHtmlForWebview(instances: Instance[]): string {
         const instancesJson = JSON.stringify(instances);
+        const scriptUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
+        const styleUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'style.css'));
 
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this._panel.webview.cspSource} 'unsafe-inline'; script-src 'unsafe-inline' ${this._panel.webview.cspSource};">
     <title>OpenClaw Manager</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: var(--vscode-font-family);
             background: var(--vscode-editor-background);
             color: var(--vscode-editor-foreground);
             padding: 20px;
         }
-        
         .header {
             display: flex;
             justify-content: space-between;
@@ -127,12 +118,18 @@ export class DashboardPanel {
             padding-bottom: 10px;
             border-bottom: 1px solid var(--vscode-panel-border);
         }
-        
-        .header h1 {
-            font-size: 24px;
-            font-weight: 500;
+        .header h1 { font-size: 24px; font-weight: 500; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .search-input {
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
         }
-        
+        .search-input:focus { border-color: var(--vscode-focusBorder); }
         .create-btn {
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
@@ -142,58 +139,30 @@ export class DashboardPanel {
             cursor: pointer;
             font-size: 14px;
         }
-        
-        .create-btn:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-        
-        .instances {
-            display: grid;
-            gap: 16px;
-        }
-        
+        .create-btn:hover { background: var(--vscode-button-hoverBackground); }
+        .instances { display: grid; gap: 16px; }
         .instance-card {
             background: var(--vscode-editorWidget-background);
             border: 1px solid var(--vscode-panel-border);
             border-radius: 8px;
             padding: 16px;
+            transition: transform 0.2s;
         }
-        
+        .instance-card:hover { border-color: var(--vscode-focusBorder); }
         .instance-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
         }
-        
-        .instance-name {
-            font-size: 16px;
-            font-weight: 600;
-        }
-        
-        .instance-status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-        }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        
-        .status-dot.running { background: #4caf50; }
+        .instance-name { font-size: 16px; font-weight: 600; }
+        .instance-status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.running { background: #4caf50; box-shadow: 0 0 5px #4caf50; }
         .status-dot.stopped { background: #9e9e9e; }
         .status-dot.starting, .status-dot.stopping { background: #ff9800; animation: pulse 1s infinite; }
         .status-dot.error { background: #f44336; }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .instance-meta {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -201,29 +170,10 @@ export class DashboardPanel {
             margin-bottom: 12px;
             font-size: 13px;
         }
-        
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        
-        .meta-label {
-            color: var(--vscode-descriptionForeground);
-            font-size: 11px;
-            text-transform: uppercase;
-        }
-        
-        .meta-value {
-            font-weight: 500;
-        }
-        
-        .instance-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
+        .meta-item { display: flex; flex-direction: column; gap: 4px; }
+        .meta-label { color: var(--vscode-descriptionForeground); font-size: 11px; text-transform: uppercase; }
+        .meta-value { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .instance-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .action-btn {
             background: var(--vscode-button-secondaryBackground);
             color: var(--vscode-button-secondaryForeground);
@@ -233,45 +183,13 @@ export class DashboardPanel {
             cursor: pointer;
             font-size: 12px;
         }
-        
-        .action-btn:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-        }
-        
-        .action-btn.danger {
-            background: #f44336;
-            color: white;
-        }
-        
-        .action-btn.danger:hover {
-            background: #d32f2f;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--vscode-descriptionForeground);
-        }
-        
-        .empty-state h2 {
-            font-size: 18px;
-            margin-bottom: 8px;
-            color: var(--vscode-editor-foreground);
-        }
-        
-        .health-bar {
-            height: 4px;
-            background: var(--vscode-progressBar-background);
-            border-radius: 2px;
-            margin-top: 4px;
-        }
-        
-        .health-fill {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-        
+        .action-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+        .action-btn.danger { background: #f44336; color: white; }
+        .action-btn.danger:hover { background: #d32f2f; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--vscode-descriptionForeground); }
+        .empty-state h2 { font-size: 18px; margin-bottom: 8px; color: var(--vscode-editor-foreground); }
+        .health-bar { height: 4px; background: var(--vscode-progressBar-background); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+        .health-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
         .health-fill.ok { background: #4caf50; }
         .health-fill.warning { background: #ff9800; }
         .health-fill.error { background: #f44336; }
@@ -280,73 +198,54 @@ export class DashboardPanel {
 <body>
     <div class="header">
         <h1>🦞 OpenClaw Manager</h1>
-        <button class="create-btn" onclick="createInstance()">+ New Instance</button>
+        <div class="controls">
+            <input type="text" id="search" class="search-input" placeholder="Search instances..." oninput="render()">
+            <button class="create-btn" onclick="createInstance()">+ New Instance</button>
+        </div>
     </div>
     
     <div id="instances" class="instances"></div>
     
     <script>
         const vscode = acquireVsCodeApi();
-        const instances = ${instancesJson};
+        let instances = ${instancesJson};
         
-        function createInstance() {
-            vscode.postMessage({ command: 'createInstance' });
-        }
-        
-        function startInstance(id) {
-            vscode.postMessage({ command: 'startInstance', id });
-        }
-        
-        function stopInstance(id) {
-            vscode.postMessage({ command: 'stopInstance', id });
-        }
-        
-        function restartInstance(id) {
-            vscode.postMessage({ command: 'restartInstance', id });
-        }
-        
-        function deleteInstance(id) {
-            if (confirm('Are you sure you want to delete this instance?')) {
-                vscode.postMessage({ command: 'deleteInstance', id });
-            }
-        }
-        
-        function cloneInstance(id) {
-            vscode.postMessage({ command: 'cloneInstance', id });
-        }
-        
-        function openConfig(id) {
-            vscode.postMessage({ command: 'openConfig', id });
-        }
-        
-        function viewLogs(id) {
-            vscode.postMessage({ command: 'viewLogs', id });
-        }
-        
-        function healthCheck(id) {
-            vscode.postMessage({ command: 'healthCheck', id });
-        }
+        function createInstance() { vscode.postMessage({ command: 'createInstance' }); }
+        function startInstance(id) { vscode.postMessage({ command: 'startInstance', id }); }
+        function stopInstance(id) { vscode.postMessage({ command: 'stopInstance', id }); }
+        function restartInstance(id) { vscode.postMessage({ command: 'restartInstance', id }); }
+        function deleteInstance(id) { vscode.postMessage({ command: 'deleteInstance', id }); }
+        function cloneInstance(id) { vscode.postMessage({ command: 'cloneInstance', id }); }
+        function openConfig(id) { vscode.postMessage({ command: 'openConfig', id }); }
+        function viewLogs(id) { vscode.postMessage({ command: 'viewLogs', id }); }
+        function healthCheck(id) { vscode.postMessage({ command: 'healthCheck', id }); }
         
         function render() {
             const container = document.getElementById('instances');
+            const searchQuery = document.getElementById('search').value.toLowerCase();
             
-            if (instances.length === 0) {
+            const filteredInstances = instances.filter(i => 
+                i.name.toLowerCase().includes(searchQuery) || 
+                i.id.toLowerCase().includes(searchQuery)
+            );
+
+            if (filteredInstances.length === 0) {
                 container.innerHTML = \`
                     <div class="empty-state">
-                        <h2>No instances yet</h2>
-                        <p>Create your first OpenClaw instance to get started</p>
+                        <h2>No instances found</h2>
+                        <p>\${instances.length === 0 ? 'Create your first OpenClaw instance to get started' : 'Try a different search term'}</p>
                     </div>
                 \`;
                 return;
             }
             
-            container.innerHTML = instances.map(instance => \`
+            container.innerHTML = filteredInstances.map(instance => \`
                 <div class="instance-card">
                     <div class="instance-header">
                         <span class="instance-name">\${instance.name}</span>
                         <div class="instance-status">
                             <span class="status-dot \${instance.status}"></span>
-                            <span>\${instance.status}</span>
+                            <span>\${instance.status.charAt(0).toUpperCase() + instance.status.slice(1)}</span>
                         </div>
                     </div>
                     <div class="instance-meta">
@@ -356,7 +255,7 @@ export class DashboardPanel {
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Model</span>
-                            <span class="meta-value">\${instance.model || 'default'}</span>
+                            <span class="meta-value" title="\${instance.model || 'default'}">\${instance.model || 'default'}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Health</span>
