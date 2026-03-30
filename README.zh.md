@@ -7,7 +7,7 @@
 
 > VS Code / Windsurf 扩展，用于管理多个隔离的 OpenClaw Gateway 实例。
 
-OpenClaw Manager 将 ClawdHome 的能力带入你的 IDE。运行多个 OpenClaw "小龙虾"，隔离配置，管理生命周期，监控健康状态，访问日志 - 全部在 VS Code 或 Windsurf 中完成。
+管理多个 OpenClaw "小龙虾"，隔离配置，管理生命周期，监控健康状态，访问日志 - 全部在 VS Code 或 Windsurf 中完成。
 
 ## 功能特性
 

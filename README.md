@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 > VS Code / Windsurf extension for managing multiple isolated OpenClaw gateway instances.
 
-OpenClaw Manager brings the power of ClawdHome to your IDE. Run multiple OpenClaw "Shrimps" with isolated configurations, manage their lifecycle, monitor health, and access logs - all from within VS Code or Windsurf.
+Manage multiple OpenClaw "Shrimps" with isolated configurations, lifecycle control, health monitoring, and file management - all from within VS Code or Windsurf.
 
 ## Features
 
@@ -149,7 +149,6 @@ openclaw-manager/
 ## Related Projects
 
 - [OpenClaw](https://github.com/openclaw/openclaw) - The AI assistant framework
-- [ClawdHome](https://github.com/ThinkInAIXYZ/clawdhome) - macOS native manager
 
 ## License
 
