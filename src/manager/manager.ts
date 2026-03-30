@@ -333,26 +333,26 @@ export class OpenClawManager implements vscode.Disposable {
     }
 
     private async configureChannel(instanceId: string, channelType: string): Promise<void> {
-        const fields: Record<string, { label: string; secret: boolean }[]> = {
+        const fields: Record<string, { key: string; label: string; secret: boolean }[]> = {
             feishu: [
-                { label: 'App ID', secret: false },
-                { label: 'App Secret', secret: true }
+                { key: 'appId', label: 'App ID', secret: false },
+                { key: 'appSecret', label: 'App Secret', secret: true }
             ],
             dingtalk: [
-                { label: 'Client ID', secret: false },
-                { label: 'Client Secret', secret: true }
+                { key: 'clientId', label: 'Client ID', secret: false },
+                { key: 'clientSecret', label: 'Client Secret', secret: true }
             ],
             wecom: [
-                { label: 'Corp ID', secret: false },
-                { label: 'Agent ID', secret: false },
-                { label: 'Secret', secret: true }
+                { key: 'corpId', label: 'Corp ID', secret: false },
+                { key: 'agentId', label: 'Agent ID', secret: false },
+                { key: 'secret', label: 'Secret', secret: true }
             ],
             discord: [
-                { label: 'Bot Token', secret: true }
+                { key: 'botToken', label: 'Bot Token', secret: true }
             ],
             slack: [
-                { label: 'Bot Token', secret: true },
-                { label: 'App Token', secret: true }
+                { key: 'botToken', label: 'Bot Token', secret: true },
+                { key: 'appToken', label: 'App Token', secret: true }
             ]
         };
 
@@ -362,10 +362,9 @@ export class OpenClawManager implements vscode.Disposable {
         const config: ChannelConfig = { enabled: true };
 
         for (const field of channelFields) {
-            const key = field.label.toLowerCase().replace(/ /g, '');
             const value = await util.input(`Enter ${field.label}`, { password: field.secret });
             if (!value) return;
-            (config as Record<string, unknown>)[key] = value;
+            (config as Record<string, unknown>)[field.key] = value;
         }
 
         configService.updateChannelConfig(instanceId, channelType, config);
