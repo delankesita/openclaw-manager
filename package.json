@@ -2,7 +2,7 @@
   "name": "openclaw-manager",
   "displayName": "OpenClaw Manager",
   "description": "Manage multiple OpenClaw gateway instances with isolation, monitoring, and file management",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "openclaw",
   "engines": {
     "vscode": "^1.85.0"

@@ -28,20 +28,6 @@ Manage multiple OpenClaw "Shrimps" with isolated configurations, lifecycle contr
 - **Tree View**: Sidebar panel showing all instances and their status
 - **Logging**: Detailed logs with rotation and size management
 
-## Screenshots
-
-### Dashboard & Tree View
-
-| Dashboard | Tree View |
-|-----------|-----------|
-| ![Dashboard](docs/assets/dashboard.svg) | ![Tree View](docs/assets/treeview.svg) |
-
-### Channel Configuration & Model Selector
-
-| Channel Configuration | Model Selector |
-|----------------------|----------------|
-| ![Channels](docs/assets/channels.svg) | ![Models](docs/assets/models.svg) |
-
 ## Installation
 
 ### From VSIX
