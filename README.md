@@ -14,11 +14,19 @@ OpenClaw Manager brings the power of ClawdHome to your IDE. Run multiple OpenCla
 
 - **Multi-Instance Management**: Create, start, stop, restart, and delete OpenClaw instances
 - **Instance Isolation**: Each instance has its own state directory and configuration
+- **Quick Setup Templates**: Pre-configured templates for different use cases (Developer, Chatbot, Research, etc.)
 - **Clone & Promote**: Clone existing instances for testing and experimentation
 - **Health Monitoring**: Real-time health checks with CPU/memory usage
-- **Dashboard UI**: Visual control panel for all instances
+- **Dashboard UI**: Visual control panel for all instances with stats
+- **Status Bar**: Shows running/total instances count
+- **Backup & Restore**: Create backups before changes, restore when needed
+- **Import & Export**: Export instance configurations, import from JSON files
+- **Channel Configuration**: Visual UI for configuring Feishu, DingTalk, WeCom, Discord, Slack, Telegram
+- **Model Selector**: Choose from NVIDIA, OpenAI, Anthropic, DeepSeek, Ollama models
+- **Auto Update**: Automatic extension update checking and installation
 - **File Management**: Quick access to config files and logs
 - **Tree View**: Sidebar panel showing all instances and their status
+- **Logging**: Detailed logs with rotation and size management
 
 ## Screenshots
 
@@ -47,11 +55,26 @@ npm run package
 
 ## Quick Start
 
-1. Open the Command Palette (`Cmd+Shift+P`)
+1. Open the Command Palette (`Cmd+Shift+P` or `Ctrl+Shift+P`)
+2. Type "OpenClaw: Quick Setup from Template"
+3. Choose a template:
+   - **Basic Shrimp** 🦞 - Simple instance with default settings
+   - **Developer Shrimp** 💻 - Configured for coding assistance
+   - **Chatbot Shrimp** 💬 - Optimized for messaging channels
+   - **Research Shrimp** 🔍 - Web search and memory enabled
+   - **Content Creator** ✍️ - Writing and publishing tools
+   - **Automation Shrimp** 🤖 - Scheduled tasks and workflows
+   - **Secure Shrimp** 🔒 - Restricted permissions
+   - **High Performance** ⚡ - Parallel processing
+4. Enter instance name and port
+5. Click "Start" to launch
+
+### Manual Instance Creation
+
+1. Open the Command Palette
 2. Type "OpenClaw: Open Dashboard"
 3. Click "+ New Instance"
 4. Enter a name for your instance
-5. Click "Start" to launch the gateway
 
 ## Commands
 
@@ -59,6 +82,7 @@ npm run package
 |---------|-------------|
 | `OpenClaw: Open Dashboard` | Open the visual dashboard |
 | `OpenClaw: Create New Instance` | Create a new instance |
+| `OpenClaw: Quick Setup from Template` | Create instance from pre-configured template |
 | `OpenClaw: Delete Instance` | Delete an instance |
 | `OpenClaw: Start Instance` | Start a stopped instance |
 | `OpenClaw: Stop Instance` | Stop a running instance |
@@ -67,6 +91,18 @@ npm run package
 | `OpenClaw: Open Config File` | Open the instance's config |
 | `OpenClaw: View Logs` | View instance logs |
 | `OpenClaw: Health Check` | Check instance health |
+| `OpenClaw: Backup Instance` | Create a backup |
+| `OpenClaw: Restore Instance` | Restore from backup |
+| `OpenClaw: Start All Instances` | Start all auto-start instances |
+| `OpenClaw: Stop All Instances` | Stop all running instances |
+| `OpenClaw: Export All Instances` | Export all configurations |
+| `OpenClaw: Import Instances` | Import from JSON file |
+| `OpenClaw: Configure Channels` | Open channel configuration UI |
+| `OpenClaw: Add Channel` | Quick add a messaging channel |
+| `OpenClaw: Select Model` | Choose AI model for instance |
+| `OpenClaw: Model Configuration` | Browse available models |
+| `OpenClaw: Check for Updates` | Check for extension updates |
+| `OpenClaw: Install Update` | Install available update |
 
 ## Configuration
 
@@ -75,6 +111,7 @@ npm run package
 | `openclawManager.instancesDir` | `~/.openclaw-instances` | Directory for instance data |
 | `openclawManager.defaultPort` | `5000` | Default port for new instances |
 | `openclawManager.autoStart` | `false` | Auto-start instances on launch |
+| `openclawManager.backupDir` | `~/.openclaw-manager/backups` | Directory for backups |
 
 ## Architecture
 
