@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 export enum InstanceStatus {
     Stopped = 'stopped',
     Starting = 'starting',
@@ -15,28 +17,52 @@ export interface InstanceHealth {
     message?: string;
 }
 
-export interface InstanceConfig {
+export interface ChannelConfig {
+    enabled: boolean;
+    mode?: 'websocket' | 'stream' | 'webhook';
+    appId?: string;
+    appSecret?: string;
+    clientId?: string;
+    clientSecret?: string;
+    corpId?: string;
+    agentId?: string;
+    secret?: string;
+    botToken?: string;
+    [key: string]: unknown;
+}
+
+export interface Instance {
     id: string;
     name: string;
     port: number;
     stateDir: string;
-    model?: string;
-    channels?: Record<string, unknown>;
-    enabled?: boolean;
-    autoStart?: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-export interface Instance extends InstanceConfig {
     status: InstanceStatus;
     health?: InstanceHealth;
     pid?: number;
+    
+    // Configuration
+    model?: string;
+    channels?: Record<string, ChannelConfig>;
+    autoStart?: boolean;
+    
+    // Metadata
+    createdAt: Date;
+    updatedAt: Date;
+    
+    // Secrets (stored separately, not exported)
+    secrets?: Record<string, string>;
 }
 
-export interface InstanceCreateOptions {
+export interface InstanceTemplate {
+    id: string;
     name: string;
-    port?: number;
-    model?: string;
-    cloneFrom?: string;
+    description: string;
+    icon: string;
+    category: string;
+    tags: string[];
+    config: Record<string, unknown>;
+    channels?: string[];
 }
+
+// Persisted config (without runtime state)
+export type InstanceConfig = Omit<Instance, 'status' | 'health' | 'pid'>;

@@ -2,346 +2,299 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { exec, spawn, ChildProcess } from 'child_process';
-import { promisify } from 'util';
-import axios from 'axios';
-import * as net from 'net';
-import { Instance, InstanceStatus, InstanceCreateOptions, InstanceHealth } from '../models/instance';
-
-const execAsync = promisify(exec);
+import { Instance, InstanceStatus, InstanceHealth, InstanceConfig, InstanceTemplate, ChannelConfig } from '../models/instance';
+import { configService } from '../services/configService';
+import { processService } from '../services/processService';
+import { util } from '../services/util';
+import { templates, getTemplate } from '../templates/templates';
 
 export class OpenClawManager implements vscode.Disposable {
-    private context: vscode.ExtensionContext;
-    private instances: Map<string, Instance> = new Map();
-    private processes: Map<string, ChildProcess> = new Map();
-    private instancesDir: string;
-    private healthCheckInterval?: NodeJS.Timeout;
-    private _onInstancesChanged: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
-    public readonly onInstancesChanged: vscode.Event<void> = this._onInstancesChanged.event;
+    private _onChanged = new vscode.EventEmitter<void>();
+    readonly onChanged = this._onChanged.event;
 
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
-        this.instancesDir = vscode.workspace.getConfiguration('openclawManager')
-            .get('instancesDir', '~/.openclaw-instances')
-            .replace('~', os.homedir());
-        
-        this.ensureInstancesDir();
-        this.loadInstances();
+    private healthCheckInterval?: NodeJS.Timeout;
+
+    constructor() {
+        processService.onProcessChanged((id) => {
+            this._onChanged.fire();
+        });
+
         this.startHealthCheck();
     }
 
-    private ensureInstancesDir(): void {
-        if (!fs.existsSync(this.instancesDir)) {
-            fs.mkdirSync(this.instancesDir, { recursive: true });
-        }
-    }
+    // ==================== Instance Management ====================
 
-    private loadInstances(): void {
-        const configFile = path.join(this.instancesDir, 'instances.json');
-        if (fs.existsSync(configFile)) {
-            try {
-                const data = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
-                Object.entries(data).forEach(([id, config]) => {
-                    this.instances.set(id, {
-                        ...(config as Instance),
-                        status: InstanceStatus.Stopped
-                    });
-                });
-            } catch (err) {
-                vscode.window.showErrorMessage(`Failed to load instances: ${err}`);
-            }
+    async create(options?: { name?: string; port?: number; template?: string; model?: string }): Promise<string | undefined> {
+        // Step 1: Get or select template
+        let templateId = options?.template;
+        if (!templateId) {
+            const items = templates.map(t => ({
+                label: `${t.icon} ${t.name}`,
+                description: t.description,
+                id: t.id
+            }));
+            const selected = await util.pick(items, { placeHolder: 'Select template' });
+            if (!selected) return;
+            templateId = selected.id;
         }
-    }
 
-    private saveInstances(): void {
-        const configFile = path.join(this.instancesDir, 'instances.json');
-        const data: Record<string, unknown> = {};
-        this.instances.forEach((instance, id) => {
-            const { status, health, pid, ...config } = instance;
-            data[id] = config;
-        });
-        
-        const tempFile = configFile + '.tmp';
-        try {
-            fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
-            fs.renameSync(tempFile, configFile);
-        } catch (err) {
-            console.error('Failed to save instances:', err);
-        }
-    }
+        const template = getTemplate(templateId);
+        if (!template) return;
 
-    async createInstance(options?: InstanceCreateOptions): Promise<string | undefined> {
-        const name = options?.name || await vscode.window.showInputBox({
-            prompt: 'Instance name',
-            placeHolder: 'my-shrimp',
+        // Step 2: Get instance name
+        const name = options?.name || await util.input('Instance name', {
+            placeholder: 'my-shrimp',
             value: `shrimp-${Date.now()}`
         });
-
-        if (!name) {
-            return;
-        }
+        if (!name) return;
 
         const id = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-        
-        // Check for collisions
-        if (this.instances.has(id) && !options?.cloneFrom) {
-            vscode.window.showErrorMessage(`Instance with ID "${id}" already exists`);
-            return;
+
+        // Step 3: Get port
+        const usedPorts = new Set(configService.getInstances().map(i => i.port));
+        const port = options?.port || await processService.findAvailablePort(5000, usedPorts);
+
+        // Step 4: Get model (optional)
+        let model = options?.model;
+        if (!model) {
+            const modelItems = [
+                { label: 'Default', id: '' },
+                { label: '⭐ MiniMax M2.5 (Fast)', id: 'nvidia/minimaxai/minimax-m2.5' },
+                { label: 'DeepSeek V3', id: 'nvidia/deepseek-ai/deepseek-v3' },
+                { label: 'Qwen 3 30B', id: 'nvidia/qwen/qwen3-30b-a3b' },
+                { label: 'Custom...', id: 'custom' }
+            ];
+            const selected = await util.pick(modelItems, { placeHolder: 'Select model (optional)' });
+            if (selected?.id === 'custom') {
+                model = await util.input('Enter model ID');
+            } else if (selected?.id) {
+                model = selected.id;
+            }
         }
 
-        const defaultPort = vscode.workspace.getConfiguration('openclawManager').get('defaultPort', 5000);
-        const port = options?.port || await this.findAvailablePort(defaultPort);
-
-        const instanceDir = path.join(this.instancesDir, id);
-        const stateDir = path.join(instanceDir, 'state');
-
+        // Create instance directory
+        const stateDir = configService.getInstanceStateDir(id);
         fs.mkdirSync(stateDir, { recursive: true });
 
-        // Clone from existing instance if specified
-        if (options?.cloneFrom) {
-            const sourceDir = path.join(this.instancesDir, options.cloneFrom, 'state');
-            if (fs.existsSync(sourceDir)) {
-                fs.cpSync(sourceDir, stateDir, { recursive: true });
-            }
-        } else {
-            // Create default config
-            const configPath = path.join(stateDir, 'openclaw.json');
-            const defaultConfig = {
-                gateway: {
-                    port,
-                    mode: 'local',
-                    bind: 'loopback'
-                },
-                agents: {
-                    list: [{ id: 'main', model: 'default' }]
-                }
-            };
-            fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-        }
+        // Generate openclaw.json from template
+        const openclawConfig = this.generateConfig(template, port, model);
+        configService.writeOpenClawConfig(stateDir, openclawConfig);
 
-        const instance: Instance = {
+        // Create instance record
+        const instance = configService.createInstance({
             id,
             name,
             port,
             stateDir,
-            status: InstanceStatus.Stopped,
+            model,
+            channels: {},
             createdAt: new Date(),
             updatedAt: new Date()
-        };
+        });
 
-        this.instances.set(id, instance);
-        this.saveInstances();
-        this._onInstancesChanged.fire();
+        this._onChanged.fire();
+        await util.notify(`Created instance: ${name}`);
 
-        vscode.window.showInformationMessage(`Created OpenClaw instance: ${name}`);
         return id;
     }
 
-    async deleteInstance(id?: string): Promise<void> {
+    async delete(id?: string): Promise<void> {
         if (!id) {
-            const names = Array.from(this.instances.values()).map(i => ({
-                label: i.name,
-                id: i.id
-            }));
-            const selected = await vscode.window.showQuickPick(names);
+            const items = configService.getInstances().map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance to delete' });
             if (!selected) return;
             id = selected.id;
         }
 
-        const instance = this.instances.get(id);
-        if (!instance) {
-            vscode.window.showErrorMessage(`Instance ${id} not found`);
-            return;
-        }
+        const instance = configService.getInstance(id);
+        if (!instance) return;
 
-        const confirm = await vscode.window.showWarningMessage(
-            `Delete instance "${instance.name}"? This cannot be undone.`,
+        const confirm = await util.warnDialog(
+            `Delete "${instance.name}"?`,
+            'Delete with Backup',
             'Delete',
             'Cancel'
         );
 
-        if (confirm !== 'Delete') {
-            return;
+        if (!confirm || confirm === 'Cancel') return;
+
+        if (confirm === 'Delete with Backup') {
+            await this.backup(id);
         }
 
         // Stop instance first
-        await this.stopInstanceInternal(id);
-
-        // Remove directory
-        const instanceDir = path.join(this.instancesDir, id);
-        fs.rmSync(instanceDir, { recursive: true, force: true });
-
-        this.instances.delete(id);
-        this.saveInstances();
-        this._onInstancesChanged.fire();
-
-        vscode.window.showInformationMessage(`Deleted instance: ${instance.name}`);
-    }
-
-    async startInstance(id?: string): Promise<void> {
-        if (!id) {
-            const names = Array.from(this.instances.values())
-                .filter(i => i.status === InstanceStatus.Stopped)
-                .map(i => ({ label: i.name, id: i.id }));
-            const selected = await vscode.window.showQuickPick(names);
-            if (!selected) return;
-            id = selected.id;
-        }
-
-        const instance = this.instances.get(id);
-        if (!instance) {
-            vscode.window.showErrorMessage(`Instance ${id} not found`);
-            return;
-        }
-
         if (instance.status === InstanceStatus.Running) {
-            vscode.window.showWarningMessage(`Instance ${instance.name} is already running`);
-            return;
+            await processService.stop(instance);
         }
 
-        instance.status = InstanceStatus.Starting;
-        this._onInstancesChanged.fire();
-
-        try {
-            const proc = spawn('openclaw', ['gateway', 'start'], {
-                cwd: instance.stateDir,
-                env: { ...process.env, OPENCLAW_STATE_DIR: instance.stateDir },
-                detached: true,
-                stdio: 'ignore'
-            });
-
-            proc.unref();
-            this.processes.set(id, proc);
-
-            // Wait for gateway to be ready
-            await this.waitForGateway(instance.port);
-
-            instance.status = InstanceStatus.Running;
-            instance.pid = proc.pid;
-            instance.updatedAt = new Date();
-            this._onInstancesChanged.fire();
-
-            vscode.window.showInformationMessage(`Started instance: ${instance.name}`);
-        } catch (err) {
-            instance.status = InstanceStatus.Error;
-            this._onInstancesChanged.fire();
-            vscode.window.showErrorMessage(`Failed to start ${instance.name}: ${err}`);
+        // Delete files
+        const instanceDir = path.dirname(instance.stateDir);
+        if (fs.existsSync(instanceDir)) {
+            fs.rmSync(instanceDir, { recursive: true, force: true });
         }
+
+        // Delete from config
+        configService.deleteInstance(id);
+        this._onChanged.fire();
+
+        await util.notify(`Deleted instance: ${instance.name}`);
     }
 
-    async stopInstance(id?: string): Promise<void> {
+    async clone(id?: string): Promise<string | undefined> {
         if (!id) {
-            const names = Array.from(this.instances.values())
-                .filter(i => i.status === InstanceStatus.Running)
-                .map(i => ({ label: i.name, id: i.id }));
-            const selected = await vscode.window.showQuickPick(names);
+            const items = configService.getInstances().map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance to clone' });
             if (!selected) return;
             id = selected.id;
         }
 
-        await this.stopInstanceInternal(id);
-        vscode.window.showInformationMessage(`Stopped instance: ${this.instances.get(id)?.name}`);
-    }
+        const source = configService.getInstance(id);
+        if (!source) return;
 
-    private async stopInstanceInternal(id: string): Promise<void> {
-        const instance = this.instances.get(id);
-        if (!instance || instance.status === InstanceStatus.Stopped) {
-            return;
-        }
-
-        instance.status = InstanceStatus.Stopping;
-        this._onInstancesChanged.fire();
-
-        try {
-            const proc = this.processes.get(id);
-            if (proc) {
-                proc.kill('SIGTERM');
-                this.processes.delete(id);
-            }
-
-            // Also try to stop via CLI
-            await execAsync('openclaw gateway stop', {
-                cwd: instance.stateDir,
-                env: { ...process.env, OPENCLAW_STATE_DIR: instance.stateDir }
-            });
-        } catch (err) {
-            console.error('Stop error:', err);
-        }
-
-        instance.status = InstanceStatus.Stopped;
-        instance.pid = undefined;
-        instance.updatedAt = new Date();
-        this._onInstancesChanged.fire();
-    }
-
-    async restartInstance(id?: string): Promise<void> {
-        if (!id) {
-            const names = Array.from(this.instances.values())
-                .filter(i => i.status === InstanceStatus.Running)
-                .map(i => ({ label: i.name, id: i.id }));
-            const selected = await vscode.window.showQuickPick(names);
-            if (!selected) return;
-            id = selected.id;
-        }
-
-        await this.stopInstanceInternal(id);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await this.startInstance(id);
-    }
-
-    async cloneInstance(id?: string): Promise<string | undefined> {
-        if (!id) {
-            const names = Array.from(this.instances.values()).map(i => ({
-                label: i.name,
-                id: i.id
-            }));
-            const selected = await vscode.window.showQuickPick(names);
-            if (!selected) return;
-            id = selected.id;
-        }
-
-        const source = this.instances.get(id);
-        if (!source) {
-            vscode.window.showErrorMessage(`Instance ${id} not found`);
-            return;
-        }
-
-        const name = await vscode.window.showInputBox({
-            prompt: 'New instance name',
-            placeHolder: `${source.name}-clone`
+        const name = await util.input('New instance name', {
+            placeholder: `${source.name}-clone`
         });
-
         if (!name) return;
 
-        return this.createInstance({
-            name,
-            cloneFrom: id
-        });
-    }
+        const newId = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+        const usedPorts = new Set(configService.getInstances().map(i => i.port));
+        const port = await processService.findAvailablePort(source.port + 1, usedPorts);
 
-    openConfig(id?: string): void {
-        if (!id) {
-            return;
+        const stateDir = configService.getInstanceStateDir(newId);
+        fs.mkdirSync(stateDir, { recursive: true });
+
+        // Copy state directory
+        if (fs.existsSync(source.stateDir)) {
+            fs.cpSync(source.stateDir, stateDir, { recursive: true });
         }
 
-        const instance = this.instances.get(id);
+        // Update port in copied config
+        const config = configService.readOpenClawConfig(stateDir);
+        if (config) {
+            (config.gateway as Record<string, unknown>).port = port;
+            configService.writeOpenClawConfig(stateDir, config);
+        }
+
+        const instance = configService.createInstance({
+            id: newId,
+            name,
+            port,
+            stateDir,
+            model: source.model,
+            channels: { ...source.channels },
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Copy secrets
+        const secrets = configService.getSecrets(id);
+        Object.entries(secrets).forEach(([key, value]) => {
+            configService.setSecret(newId, key, value);
+        });
+
+        this._onChanged.fire();
+        await util.notify(`Cloned instance: ${name}`);
+
+        return newId;
+    }
+
+    // ==================== Process Control ====================
+
+    async start(id?: string): Promise<void> {
+        if (!id) {
+            const items = configService.getInstances()
+                .filter(i => i.status === InstanceStatus.Stopped)
+                .map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance to start' });
+            if (!selected) return;
+            id = selected.id;
+        }
+
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        try {
+            await util.withProgress(`Starting ${instance.name}...`, () => processService.start(instance));
+            await util.notify(`Started ${instance.name}`);
+        } catch (err) {
+            await util.error(`Failed to start ${instance.name}: ${err}`);
+        }
+    }
+
+    async stop(id?: string): Promise<void> {
+        if (!id) {
+            const items = configService.getInstances()
+                .filter(i => i.status === InstanceStatus.Running)
+                .map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance to stop' });
+            if (!selected) return;
+            id = selected.id;
+        }
+
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        try {
+            await util.withProgress(`Stopping ${instance.name}...`, () => processService.stop(instance));
+            await util.notify(`Stopped ${instance.name}`);
+        } catch (err) {
+            await util.error(`Failed to stop ${instance.name}: ${err}`);
+        }
+    }
+
+    async restart(id?: string): Promise<void> {
+        if (!id) {
+            const items = configService.getInstances()
+                .filter(i => i.status === InstanceStatus.Running)
+                .map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance to restart' });
+            if (!selected) return;
+            id = selected.id;
+        }
+
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        try {
+            await util.withProgress(`Restarting ${instance.name}...`, () => processService.restart(instance));
+            await util.notify(`Restarted ${instance.name}`);
+        } catch (err) {
+            await util.error(`Failed to restart ${instance.name}: ${err}`);
+        }
+    }
+
+    async startAll(): Promise<void> {
+        const instances = configService.getInstances().filter(i => i.autoStart);
+        for (const instance of instances) {
+            if (instance.status === InstanceStatus.Stopped) {
+                await this.start(instance.id);
+            }
+        }
+    }
+
+    async stopAll(): Promise<void> {
+        const instances = configService.getInstances().filter(i => i.status === InstanceStatus.Running);
+        for (const instance of instances) {
+            await this.stop(instance.id);
+        }
+    }
+
+    // ==================== Configuration ====================
+
+    openConfig(id?: string): void {
+        if (!id) return;
+        const instance = configService.getInstance(id);
         if (!instance) return;
 
         const configPath = path.join(instance.stateDir, 'openclaw.json');
         if (fs.existsSync(configPath)) {
-            const uri = vscode.Uri.file(configPath);
-            vscode.window.showTextDocument(uri);
-        } else {
-            vscode.window.showErrorMessage('Config file not found');
+            vscode.window.showTextDocument(vscode.Uri.file(configPath));
         }
     }
 
     viewLogs(id?: string): void {
-        if (!id) {
-            return;
-        }
-
-        const instance = this.instances.get(id);
+        if (!id) return;
+        const instance = configService.getInstance(id);
         if (!instance) return;
 
         const logDir = path.join(instance.stateDir, 'logs');
@@ -349,139 +302,289 @@ export class OpenClawManager implements vscode.Disposable {
             fs.mkdirSync(logDir, { recursive: true });
         }
 
-        const logFile = path.join(logDir, 'gateway.log');
-        if (fs.existsSync(logFile)) {
-            const uri = vscode.Uri.file(logFile);
-            vscode.window.showTextDocument(uri);
-        } else {
-            // Create terminal for logs
-            const terminal = vscode.window.createTerminal(`OpenClaw Logs: ${instance.name}`);
-            const logPattern = path.join(instance.stateDir, 'logs', '*.log');
-            if (process.platform === 'win32') {
-                terminal.sendText(`Get-Content "${logPattern}" -Wait -Tail 100`);
-            } else {
-                terminal.sendText(`tail -f "${logPattern}"`);
-            }
-            terminal.show();
+        const terminal = vscode.window.createTerminal(`Logs: ${instance.name}`);
+        terminal.sendText(`cd "${logDir}" && ls -la && echo "--- Use 'tail -f *.log' to follow logs ---"`);
+        terminal.show();
+    }
+
+    async configureChannels(id?: string): Promise<void> {
+        if (!id) {
+            const items = configService.getInstances().map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance' });
+            if (!selected) return;
+            id = selected.id;
+        }
+
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        const channelTypes = [
+            { label: '📱 Feishu', id: 'feishu' },
+            { label: '🔔 DingTalk', id: 'dingtalk' },
+            { label: '💬 WeCom', id: 'wecom' },
+            { label: '🎮 Discord', id: 'discord' },
+            { label: '💼 Slack', id: 'slack' }
+        ];
+
+        const selected = await util.pick(channelTypes, { placeHolder: 'Select channel to configure' });
+        if (!selected) return;
+
+        await this.configureChannel(id, selected.id);
+    }
+
+    private async configureChannel(instanceId: string, channelType: string): Promise<void> {
+        const fields: Record<string, { label: string; secret: boolean }[]> = {
+            feishu: [
+                { label: 'App ID', secret: false },
+                { label: 'App Secret', secret: true }
+            ],
+            dingtalk: [
+                { label: 'Client ID', secret: false },
+                { label: 'Client Secret', secret: true }
+            ],
+            wecom: [
+                { label: 'Corp ID', secret: false },
+                { label: 'Agent ID', secret: false },
+                { label: 'Secret', secret: true }
+            ],
+            discord: [
+                { label: 'Bot Token', secret: true }
+            ],
+            slack: [
+                { label: 'Bot Token', secret: true },
+                { label: 'App Token', secret: true }
+            ]
+        };
+
+        const channelFields = fields[channelType];
+        if (!channelFields) return;
+
+        const config: ChannelConfig = { enabled: true };
+
+        for (const field of channelFields) {
+            const key = field.label.toLowerCase().replace(/ /g, '');
+            const value = await util.input(`Enter ${field.label}`, { password: field.secret });
+            if (!value) return;
+            (config as Record<string, unknown>)[key] = value;
+        }
+
+        configService.updateChannelConfig(instanceId, channelType, config);
+        await util.notify(`Configured ${channelType} channel`);
+    }
+
+    async selectModel(id?: string): Promise<void> {
+        if (!id) {
+            const items = configService.getInstances().map(i => ({
+                label: i.name,
+                description: i.model || 'default',
+                id: i.id
+            }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance' });
+            if (!selected) return;
+            id = selected.id;
+        }
+
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        const models = [
+            { label: 'Default', id: '' },
+            { label: '⭐ MiniMax M2.5 (Fast)', id: 'nvidia/minimaxai/minimax-m2.5' },
+            { label: 'DeepSeek V3', id: 'nvidia/deepseek-ai/deepseek-v3' },
+            { label: 'Qwen 3 30B', id: 'nvidia/qwen/qwen3-30b-a3b' },
+            { label: 'Llama 3.3 70B', id: 'nvidia/meta/llama-3.3-70b-instruct' },
+            { label: 'Custom...', id: 'custom' }
+        ];
+
+        const selected = await util.pick(models, { placeHolder: 'Select model' });
+        if (!selected) return;
+
+        let model = selected.id;
+        if (model === 'custom') {
+            model = await util.input('Enter model ID') || '';
+        }
+
+        if (model !== undefined) {
+            configService.updateModelConfig(id, model);
+            await util.notify(`Updated model for ${instance.name}`);
         }
     }
 
-    async healthCheck(id?: string): Promise<InstanceHealth | undefined> {
+    // ==================== Backup & Restore ====================
+
+    async backup(id?: string): Promise<void> {
         if (!id) {
-            return;
+            const items = configService.getInstances().map(i => ({ label: i.name, id: i.id }));
+            const selected = await util.pick(items, { placeHolder: 'Select instance to backup' });
+            if (!selected) return;
+            id = selected.id;
         }
 
-        const instance = this.instances.get(id);
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupName = `${instance.name}-${timestamp}.json`;
+        
+        const config = configService.readOpenClawConfig(instance.stateDir);
+        const backupData = {
+            version: '1.0',
+            instance: {
+                id: instance.id,
+                name: instance.name,
+                port: instance.port,
+                model: instance.model,
+                channels: instance.channels
+            },
+            config,
+            createdAt: new Date().toISOString()
+        };
+
+        const filePath = await util.saveFile(backupName, JSON.stringify(backupData, null, 2));
+        if (filePath) {
+            await util.notify(`Backup saved: ${filePath}`);
+        }
+    }
+
+    async restore(id?: string): Promise<void> {
+        if (!id) return;
+
+        const filePath = await util.openFile({ 'JSON Files': ['json'] });
+        if (!filePath) return;
+
+        const instance = configService.getInstance(id);
         if (!instance) return;
 
         try {
-            const response = await axios.get(`http://localhost:${instance.port}/health`, {
-                timeout: 5000
-            });
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const backup = JSON.parse(content);
 
-            instance.health = {
-                status: 'ok',
-                cpu: response.data.cpu || 0,
-                memory: response.data.memory || 0,
-                uptime: response.data.uptime || 0,
-                lastCheck: new Date()
-            };
-        } catch (err) {
-            instance.health = {
-                status: 'error',
-                cpu: 0,
-                memory: 0,
-                uptime: 0,
-                lastCheck: new Date(),
-                message: 'Connection failed'
-            };
-        }
-        
-        this._onInstancesChanged.fire();
-        return instance.health;
-    }
-
-    getInstances(): Instance[] {
-        return Array.from(this.instances.values());
-    }
-
-    getInstance(id: string): Instance | undefined {
-        return this.instances.get(id);
-    }
-
-    async startAllInstances(): Promise<void> {
-        for (const instance of this.instances.values()) {
-            if (instance.autoStart && instance.status === InstanceStatus.Stopped) {
-                await this.startInstance(instance.id);
+            if (instance.status === InstanceStatus.Running) {
+                await processService.stop(instance);
             }
+
+            configService.writeOpenClawConfig(instance.stateDir, backup.config);
+            
+            if (backup.instance?.model) {
+                configService.updateModelConfig(id, backup.instance.model);
+            }
+            if (backup.instance?.channels) {
+                Object.entries(backup.instance.channels).forEach(([channel, config]) => {
+                    configService.updateChannelConfig(id, channel, config as ChannelConfig);
+                });
+            }
+
+            this._onChanged.fire();
+            await util.notify(`Restored backup to ${instance.name}`);
+        } catch (err) {
+            await util.error(`Failed to restore: ${err}`);
         }
     }
 
-    private async findAvailablePort(startPort: number): Promise<number> {
-        const managedPorts = new Set(Array.from(this.instances.values()).map(i => i.port));
-        let port = startPort;
-        
-        while (true) {
-            if (!managedPorts.has(port)) {
-                const available = await this.isPortAvailable(port);
-                if (available) {
-                    return port;
+    // ==================== Import & Export ====================
+
+    async exportAll(): Promise<void> {
+        const configs = configService.exportInstances();
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filePath = await util.saveFile(
+            `openclaw-instances-${timestamp}.json`,
+            JSON.stringify({ version: '1.0', instances: configs }, null, 2)
+        );
+        if (filePath) {
+            await util.notify(`Exported ${configs.length} instances`);
+        }
+    }
+
+    async import(): Promise<void> {
+        const filePath = await util.openFile({ 'JSON Files': ['json'] });
+        if (!filePath) return;
+
+        try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const data = JSON.parse(content);
+            const instances = data.instances || [data];
+
+            let imported = 0;
+            for (const config of instances) {
+                if (!configService.getInstance(config.id)) {
+                    const stateDir = configService.getInstanceStateDir(config.id);
+                    fs.mkdirSync(stateDir, { recursive: true });
+                    configService.createInstance({ ...config, stateDir });
+                    imported++;
                 }
             }
-            port++;
+
+            this._onChanged.fire();
+            await util.notify(`Imported ${imported} instances`);
+        } catch (err) {
+            await util.error(`Failed to import: ${err}`);
         }
     }
 
-    private isPortAvailable(port: number): Promise<boolean> {
-        return new Promise((resolve) => {
-            const server = net.createServer();
-            server.once('error', () => {
-                resolve(false);
-            });
-            server.once('listening', () => {
-                server.close();
-                resolve(true);
-            });
-            server.listen(port, '127.0.0.1');
-        });
-    }
+    // ==================== Health Check ====================
 
-    private async waitForGateway(port: number, timeout = 30000): Promise<void> {
-        const startTime = Date.now();
-        while (Date.now() - startTime < timeout) {
-            try {
-                await axios.get(`http://localhost:${port}/health`, { timeout: 1000 });
-                return;
-            } catch {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-        }
-        throw new Error('Gateway did not start within timeout');
+    async healthCheck(id?: string): Promise<InstanceHealth | undefined> {
+        if (!id) return;
+        const instance = configService.getInstance(id);
+        if (!instance) return;
+
+        const health = await processService.healthCheck(instance);
+        this._onChanged.fire();
+        return health;
     }
 
     private startHealthCheck(): void {
         const interval = vscode.workspace.getConfiguration('openclawManager').get('healthCheckInterval', 30000);
         
-        this.healthCheckInterval = setInterval(() => {
-            this.instances.forEach(async (instance, id) => {
+        this.healthCheckInterval = setInterval(async () => {
+            for (const instance of configService.getInstances()) {
                 if (instance.status === InstanceStatus.Running) {
-                    await this.healthCheck(id);
+                    await processService.healthCheck(instance);
                 }
-            });
+            }
+            this._onChanged.fire();
         }, interval);
+    }
+
+    // ==================== Helpers ====================
+
+    private generateConfig(template: InstanceTemplate, port: number, model?: string): Record<string, unknown> {
+        const config = {
+            gateway: {
+                port,
+                mode: 'local',
+                bind: 'loopback',
+                controlUi: { enabled: true },
+                auth: { mode: 'token' }
+            },
+            agents: {
+                list: [{ id: 'main', model: model || 'default' }]
+            },
+            ...template.config
+        };
+
+        // Ensure gateway port is set
+        (config.gateway as Record<string, unknown>).port = port;
+
+        return config;
+    }
+
+    // ==================== Getters ====================
+
+    getInstances(): Instance[] {
+        return configService.getInstances();
+    }
+
+    getInstance(id: string): Instance | undefined {
+        return configService.getInstance(id);
     }
 
     dispose(): void {
         if (this.healthCheckInterval) {
             clearInterval(this.healthCheckInterval);
         }
-        this.processes.forEach((proc, id) => {
-            try {
-                proc.kill('SIGTERM');
-            } catch (err) {
-                console.error(`Failed to kill process for instance ${id}:`, err);
-            }
-        });
-        this._onInstancesChanged.dispose();
+        processService.dispose();
+        util.dispose();
+        this._onChanged.dispose();
     }
 }

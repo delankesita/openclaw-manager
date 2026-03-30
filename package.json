@@ -1,131 +1,68 @@
 {
   "name": "openclaw-manager",
   "displayName": "OpenClaw Manager",
-  "description": "Manage multiple OpenClaw gateway instances with isolation, monitoring, and file management",
-  "version": "0.2.0",
+  "description": "Manage OpenClaw gateway instances with monitoring and configuration",
+  "version": "0.6.0",
   "publisher": "openclaw",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": [
-    "Other"
-  ],
-  "keywords": [
-    "openclaw",
-    "ai",
-    "agent",
-    "gateway",
-    "management"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "categories": ["Other"],
+  "keywords": ["openclaw", "ai", "agent", "gateway", "management"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
-  "icon": "resources/icon.png",
+
   "contributes": {
     "commands": [
-      {
-        "command": "openclawManager.openDashboard",
-        "title": "OpenClaw: Open Dashboard"
-      },
-      {
-        "command": "openclawManager.createInstance",
-        "title": "OpenClaw: Create New Instance"
-      },
-      {
-        "command": "openclawManager.deleteInstance",
-        "title": "OpenClaw: Delete Instance"
-      },
-      {
-        "command": "openclawManager.startInstance",
-        "title": "OpenClaw: Start Instance"
-      },
-      {
-        "command": "openclawManager.stopInstance",
-        "title": "OpenClaw: Stop Instance"
-      },
-      {
-        "command": "openclawManager.restartInstance",
-        "title": "OpenClaw: Restart Instance"
-      },
-      {
-        "command": "openclawManager.cloneInstance",
-        "title": "OpenClaw: Clone Instance"
-      },
-      {
-        "command": "openclawManager.openConfig",
-        "title": "OpenClaw: Open Config File"
-      },
-      {
-        "command": "openclawManager.viewLogs",
-        "title": "OpenClaw: View Logs"
-      },
-      {
-        "command": "openclawManager.healthCheck",
-        "title": "OpenClaw: Health Check"
-      }
+      { "command": "openclawManager.openDashboard", "title": "OpenClaw: Open Dashboard", "icon": "$(dashboard)" },
+      { "command": "openclawManager.create", "title": "OpenClaw: Create Instance", "icon": "$(add)" },
+      { "command": "openclawManager.delete", "title": "OpenClaw: Delete Instance" },
+      { "command": "openclawManager.clone", "title": "OpenClaw: Clone Instance" },
+      { "command": "openclawManager.start", "title": "OpenClaw: Start Instance", "icon": "$(play)" },
+      { "command": "openclawManager.stop", "title": "OpenClaw: Stop Instance", "icon": "$(debug-stop)" },
+      { "command": "openclawManager.restart", "title": "OpenClaw: Restart Instance" },
+      { "command": "openclawManager.startAll", "title": "OpenClaw: Start All Instances" },
+      { "command": "openclawManager.stopAll", "title": "OpenClaw: Stop All Instances" },
+      { "command": "openclawManager.openConfig", "title": "OpenClaw: Open Config" },
+      { "command": "openclawManager.viewLogs", "title": "OpenClaw: View Logs" },
+      { "command": "openclawManager.configureChannels", "title": "OpenClaw: Configure Channels" },
+      { "command": "openclawManager.selectModel", "title": "OpenClaw: Select Model" },
+      { "command": "openclawManager.healthCheck", "title": "OpenClaw: Health Check" },
+      { "command": "openclawManager.backup", "title": "OpenClaw: Backup Instance" },
+      { "command": "openclawManager.restore", "title": "OpenClaw: Restore Instance" },
+      { "command": "openclawManager.exportAll", "title": "OpenClaw: Export All Instances" },
+      { "command": "openclawManager.import", "title": "OpenClaw: Import Instances" }
     ],
     "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "openclaw-manager",
-          "title": "OpenClaw Manager",
-          "icon": "resources/icon.png"
-        }
-      ]
+      "activitybar": [{
+        "id": "openclaw-manager",
+        "title": "OpenClaw Manager",
+        "icon": "resources/icon.png"
+      }]
     },
     "views": {
-      "openclaw-manager": [
-        {
-          "id": "openclawInstances",
-          "name": "Instances"
-        }
-      ]
+      "openclaw-manager": [{
+        "id": "openclawInstances",
+        "name": "Instances"
+      }]
     },
     "menus": {
       "view/title": [
-        {
-          "command": "openclawManager.createInstance",
-          "when": "view == openclawInstances",
-          "group": "navigation"
-        }
+        { "command": "openclawManager.create", "when": "view == openclawInstances", "group": "navigation@1" },
+        { "command": "openclawManager.openDashboard", "when": "view == openclawInstances", "group": "navigation@2" }
       ],
       "view/item/context": [
-        {
-          "command": "openclawManager.startInstance",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "instance@1"
-        },
-        {
-          "command": "openclawManager.stopInstance",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "instance@2"
-        },
-        {
-          "command": "openclawManager.restartInstance",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "instance@3"
-        },
-        {
-          "command": "openclawManager.cloneInstance",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "instance@4"
-        },
-        {
-          "command": "openclawManager.deleteInstance",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "instance@5"
-        },
-        {
-          "command": "openclawManager.openConfig",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "files@1"
-        },
-        {
-          "command": "openclawManager.viewLogs",
-          "when": "view == openclawInstances && viewItem == instance",
-          "group": "files@2"
-        }
+        { "command": "openclawManager.start", "when": "view == openclawInstances && viewItem == instance", "group": "control@1" },
+        { "command": "openclawManager.stop", "when": "view == openclawInstances && viewItem == instance", "group": "control@2" },
+        { "command": "openclawManager.restart", "when": "view == openclawInstances && viewItem == instance", "group": "control@3" },
+        { "command": "openclawManager.clone", "when": "view == openclawInstances && viewItem == instance", "group": "manage@1" },
+        { "command": "openclawManager.delete", "when": "view == openclawInstances && viewItem == instance", "group": "manage@2" },
+        { "command": "openclawManager.openConfig", "when": "view == openclawInstances && viewItem == instance", "group": "config@1" },
+        { "command": "openclawManager.viewLogs", "when": "view == openclawInstances && viewItem == instance", "group": "config@2" },
+        { "command": "openclawManager.selectModel", "when": "view == openclawInstances && viewItem == instance", "group": "config@3" },
+        { "command": "openclawManager.configureChannels", "when": "view == openclawInstances && viewItem == instance", "group": "config@4" },
+        { "command": "openclawManager.backup", "when": "view == openclawInstances && viewItem == instance", "group": "backup@1" },
+        { "command": "openclawManager.restore", "when": "view == openclawInstances && viewItem == instance", "group": "backup@2" }
       ]
     },
     "configuration": {
@@ -136,11 +73,6 @@
           "default": "~/.openclaw-instances",
           "description": "Directory to store OpenClaw instance configurations"
         },
-        "openclawManager.defaultPort": {
-          "type": "number",
-          "default": 5000,
-          "description": "Default port for new instances"
-        },
         "openclawManager.autoStart": {
           "type": "boolean",
           "default": false,
@@ -149,7 +81,7 @@
         "openclawManager.healthCheckInterval": {
           "type": "number",
           "default": 30000,
-          "description": "Interval in milliseconds between health checks"
+          "description": "Health check interval in milliseconds"
         }
       }
     }
@@ -158,27 +90,20 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
     "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.54.0",
     "typescript": "^5.3.0",
-    "@vscode/test-electron": "^2.3.0",
     "@vscode/vsce": "^2.22.0"
   },
   "dependencies": {
     "axios": "^1.6.0"
   },
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/openclaw/openclaw-manager"
-  },
-  "license": "MIT"
+    "url": "https://github.com/delankesita/openclaw-manager"
+  }
 }
