@@ -422,10 +422,18 @@ export class OpenClawManager implements vscode.Disposable {
         const instance = configService.getInstance(id);
         if (!instance) return;
 
+        // Ask whether to include secrets
+        const includeSecrets = await util.confirm(
+            'Include credentials (API keys, tokens) in backup?',
+            'Include credentials'
+        );
+
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupName = `${instance.name}-${timestamp}.json`;
         
         const config = configService.readOpenClawConfig(instance.stateDir);
+        const secrets = includeSecrets ? configService.getSecrets(id) : {};
+        
         const backupData = {
             version: '1.0',
             instance: {
@@ -436,12 +444,16 @@ export class OpenClawManager implements vscode.Disposable {
                 channels: instance.channels
             },
             config,
+            secrets: includeSecrets ? secrets : {},
             createdAt: new Date().toISOString()
         };
 
         const filePath = await util.saveFile(backupName, JSON.stringify(backupData, null, 2));
         if (filePath) {
-            await util.notify(`Backup saved: ${filePath}`);
+            const msg = includeSecrets 
+                ? `Backup saved with credentials: ${filePath}`
+                : `Backup saved (without credentials): ${filePath}`;
+            await util.notify(msg);
         }
     }
 
@@ -462,19 +474,34 @@ export class OpenClawManager implements vscode.Disposable {
                 await processService.stop(instance);
             }
 
+            // Restore config
             configService.writeOpenClawConfig(instance.stateDir, backup.config);
             
+            // Restore model
             if (backup.instance?.model) {
                 configService.updateModelConfig(id, backup.instance.model);
             }
+            
+            // Restore channels
             if (backup.instance?.channels) {
                 Object.entries(backup.instance.channels).forEach(([channel, config]) => {
                     configService.updateChannelConfig(id, channel, config as ChannelConfig);
                 });
             }
+            
+            // Restore secrets
+            if (backup.secrets && Object.keys(backup.secrets).length > 0) {
+                Object.entries(backup.secrets as Record<string, string>).forEach(([key, value]) => {
+                    configService.setSecret(id, key, value);
+                });
+            }
 
             this._onChanged.fire();
-            await util.notify(`Restored backup to ${instance.name}`);
+            
+            const msg = backup.secrets && Object.keys(backup.secrets).length > 0
+                ? `Restored backup with credentials to ${instance.name}`
+                : `Restored backup to ${instance.name} (credentials not included in backup)`;
+            await util.notify(msg);
         } catch (err) {
             await util.error(`Failed to restore: ${err}`);
         }
@@ -508,6 +535,23 @@ export class OpenClawManager implements vscode.Disposable {
                 if (!configService.getInstance(config.id)) {
                     const stateDir = configService.getInstanceStateDir(config.id);
                     fs.mkdirSync(stateDir, { recursive: true });
+                    
+                    // Generate openclaw.json from config
+                    const openclawConfig = {
+                        gateway: {
+                            port: config.port,
+                            mode: 'local',
+                            bind: 'loopback',
+                            controlUi: { enabled: true },
+                            auth: { mode: 'token' }
+                        },
+                        agents: {
+                            list: [{ id: 'main', model: config.model || 'default' }]
+                        },
+                        channels: config.channels || {}
+                    };
+                    configService.writeOpenClawConfig(stateDir, openclawConfig);
+                    
                     configService.createInstance({ ...config, stateDir });
                     imported++;
                 }
@@ -548,7 +592,8 @@ export class OpenClawManager implements vscode.Disposable {
     // ==================== Helpers ====================
 
     private generateConfig(template: InstanceTemplate, port: number, model?: string): Record<string, unknown> {
-        const config = {
+        // Base config with model
+        const baseConfig = {
             gateway: {
                 port,
                 mode: 'local',
@@ -558,14 +603,43 @@ export class OpenClawManager implements vscode.Disposable {
             },
             agents: {
                 list: [{ id: 'main', model: model || 'default' }]
-            },
-            ...template.config
+            }
         };
 
-        // Ensure gateway port is set
-        (config.gateway as Record<string, unknown>).port = port;
+        // Deep merge with template config (template takes precedence, but preserve model)
+        const merged = this.deepMerge(baseConfig, template.config);
+        
+        // Ensure gateway port and model are set
+        (merged.gateway as Record<string, unknown>).port = port;
+        if (merged.agents && Array.isArray((merged.agents as Record<string, unknown>).list)) {
+            const list = (merged.agents as Record<string, unknown>).list as Array<Record<string, unknown>>;
+            if (list.length > 0) {
+                list[0].model = model || 'default';
+            }
+        }
 
-        return config;
+        return merged;
+    }
+
+    private deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+        const result = { ...target };
+        for (const key of Object.keys(source)) {
+            if (
+                typeof source[key] === 'object' &&
+                source[key] !== null &&
+                !Array.isArray(source[key]) &&
+                typeof result[key] === 'object' &&
+                result[key] !== null
+            ) {
+                result[key] = this.deepMerge(
+                    result[key] as Record<string, unknown>,
+                    source[key] as Record<string, unknown>
+                );
+            } else {
+                result[key] = source[key];
+            }
+        }
+        return result;
     }
 
     // ==================== Getters ====================

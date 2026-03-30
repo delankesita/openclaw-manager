@@ -12,6 +12,7 @@ const execAsync = promisify(exec);
 
 export class ProcessService {
     private processes: Map<string, ChildProcess> = new Map();
+    private reservedPorts: Set<number> = new Set(); // Ports reserved during instance creation
     private _onProcessChanged = new vscode.EventEmitter<string>();
     readonly onProcessChanged = this._onProcessChanged.event;
 
@@ -221,12 +222,22 @@ export class ProcessService {
     async findAvailablePort(startPort: number, usedPorts: Set<number>): Promise<number> {
         let port = startPort;
         while (true) {
-            if (!usedPorts.has(port)) {
+            // Check if port is already used by existing instances or reserved
+            if (!usedPorts.has(port) && !this.reservedPorts.has(port)) {
                 const available = await this.isPortAvailable(port);
-                if (available) return port;
+                if (available) {
+                    // Reserve the port immediately to prevent race conditions
+                    this.reservedPorts.add(port);
+                    return port;
+                }
             }
             port++;
         }
+    }
+
+    // Release a reserved port (if instance creation fails)
+    releasePort(port: number): void {
+        this.reservedPorts.delete(port);
     }
 
     isProcessRunning(id: string): boolean {

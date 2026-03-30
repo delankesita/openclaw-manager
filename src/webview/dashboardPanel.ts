@@ -51,6 +51,10 @@ export class DashboardPanel {
                 case 'health': await this._manager.healthCheck(id); break;
                 case 'channels': await this._manager.configureChannels(id); break;
                 case 'model': await this._manager.selectModel(id); break;
+                case 'backup': await this._manager.backup(id); break;
+                case 'restore': await this._manager.restore(id); break;
+                case 'export': await this._manager.exportAll(); break;
+                case 'import': await this._manager.import(); break;
             }
         }, null, this._disposables);
     }
@@ -148,7 +152,11 @@ export class DashboardPanel {
 <body>
     <div class="header">
         <h1>🦞 OpenClaw Manager</h1>
-        <button class="btn" onclick="post('create')">+ Create</button>
+        <div>
+            <button class="btn secondary" onclick="post('import')">Import</button>
+            <button class="btn secondary" onclick="post('export')">Export</button>
+            <button class="btn" onclick="post('create')">+ Create</button>
+        </div>
     </div>
     
     <div id="grid" class="grid"></div>
@@ -195,6 +203,7 @@ export class DashboardPanel {
                         <button class="btn secondary small" onclick="post('health', '\${i.id}')">Health</button>
                         <button class="btn secondary small" onclick="post('model', '\${i.id}')">Model</button>
                         <button class="btn secondary small" onclick="post('channels', '\${i.id}')">Channels</button>
+                        <button class="btn secondary small" onclick="post('backup', '\${i.id}')">Backup</button>
                         <button class="btn secondary small" onclick="post('clone', '\${i.id}')">Clone</button>
                         <button class="btn danger small" onclick="post('delete', '\${i.id}')">Delete</button>
                     </div>
