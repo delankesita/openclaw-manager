@@ -538,6 +538,10 @@ export class OpenClawManager implements vscode.Disposable {
                     
                     // Generate openclaw.json from config
                     const openclawConfig = {
+                        meta: {
+                            lastTouchedVersion: '2026.3.24',
+                            lastTouchedAt: new Date().toISOString()
+                        },
                         gateway: {
                             port: config.port,
                             mode: 'local',
@@ -592,8 +596,12 @@ export class OpenClawManager implements vscode.Disposable {
     // ==================== Helpers ====================
 
     private generateConfig(template: InstanceTemplate, port: number, model?: string): Record<string, unknown> {
-        // Base config with model
+        // Base config with required meta field
         const baseConfig = {
+            meta: {
+                lastTouchedVersion: '2026.3.24',
+                lastTouchedAt: new Date().toISOString()
+            },
             gateway: {
                 port,
                 mode: 'local',

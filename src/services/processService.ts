@@ -54,19 +54,19 @@ export class ProcessService {
                     cwd: stateDir,
                     env: {
                         ...process.env,
-                        OPENCLAW_STATE_DIR: stateDir,
+                        OPENCLAW_CONFIG_PATH: path.join(stateDir, 'openclaw.json'),
                         PORT: String(port)
                     },
                     detached: false,
                     stdio: ['ignore', 'pipe', 'pipe']
                 });
             } else {
-                // Use openclaw directly with state dir
+                // Use openclaw directly with config path
                 proc = spawn('openclaw', ['--log-level', 'error', 'gateway', 'run'], {
                     cwd: stateDir,
                     env: {
                         ...process.env,
-                        OPENCLAW_STATE_DIR: stateDir
+                        OPENCLAW_CONFIG_PATH: path.join(stateDir, 'openclaw.json')
                     },
                     detached: false,
                     stdio: ['ignore', 'pipe', 'pipe']
